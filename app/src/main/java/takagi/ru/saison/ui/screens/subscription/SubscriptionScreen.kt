@@ -546,6 +546,7 @@ fun SubscriptionStatsCard(statistics: SubscriptionGlobalStats) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         )
@@ -554,48 +555,49 @@ fun SubscriptionStatsCard(statistics: SubscriptionGlobalStats) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             // 日均消费
             StatItem(
                 icon = Icons.Default.AttachMoney,
                 label = stringResource(R.string.subscription_stats_daily_cost),
-                value = String.format("¥%.2f", statistics.totalDailyCost),
-                modifier = Modifier.weight(1f)
+                value = String.format("¥%.2f", statistics.totalDailyCost)
             )
             
-            VerticalDivider(
+            Box(
                 modifier = Modifier
-                    .height(48.dp)
-                    .padding(horizontal = 8.dp)
+                    .height(60.dp)
+                    .width(1.dp)
+                    .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
             )
             
             // 一次性购买日均价值
             StatItem(
                 icon = Icons.Default.Category,
                 label = stringResource(R.string.subscription_stats_onetime_daily),
-                value = String.format("¥%.2f", statistics.oneTimePurchaseDailyValue),
-                modifier = Modifier.weight(1f)
+                value = String.format("¥%.2f", statistics.oneTimePurchaseDailyValue)
             )
             
-            VerticalDivider(
+            Box(
                 modifier = Modifier
-                    .height(48.dp)
-                    .padding(horizontal = 8.dp)
+                    .height(60.dp)
+                    .width(1.dp)
+                    .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
             )
             
             // 活跃订阅
             StatItem(
                 icon = Icons.Default.Schedule,
                 label = stringResource(R.string.subscription_stats_active),
-                value = statistics.activeCount.toString(),
-                modifier = Modifier.weight(1f)
+                value = statistics.activeCount.toString()
             )
             
-            VerticalDivider(
+            Box(
                 modifier = Modifier
-                    .height(48.dp)
-                    .padding(horizontal = 8.dp)
+                    .height(60.dp)
+                    .width(1.dp)
+                    .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
             )
             
             // 逾期订阅
@@ -603,8 +605,7 @@ fun SubscriptionStatsCard(statistics: SubscriptionGlobalStats) {
                 icon = Icons.Default.Warning,
                 label = stringResource(R.string.subscription_stats_overdue),
                 value = statistics.overdueCount.toString(),
-                isWarning = statistics.overdueCount > 0,
-                modifier = Modifier.weight(1f)
+                isWarning = statistics.overdueCount > 0
             )
         }
     }
@@ -615,25 +616,29 @@ fun StatItem(
     icon: ImageVector,
     label: String,
     value: String,
-    modifier: Modifier = Modifier,
     isWarning: Boolean = false
 ) {
     Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (isWarning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp)
-        )
+        Box(
+            modifier = Modifier.size(48.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isWarning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(28.dp)
+            )
+        }
         
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         
         AnimatedCounter(
             count = value,
-            style = MaterialTheme.typography.titleSmall.copy(
+            style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.Bold,
                 color = if (isWarning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -641,7 +646,7 @@ fun StatItem(
         
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
