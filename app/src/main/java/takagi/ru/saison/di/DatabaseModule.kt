@@ -1,12 +1,20 @@
 package takagi.ru.saison.di
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import takagi.ru.saison.data.local.database.DatabaseMigrationHelper
 import takagi.ru.saison.data.local.database.SaisonDatabase
 import takagi.ru.saison.data.local.database.dao.*
 import javax.inject.Singleton
@@ -15,10 +23,13 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
     
+    private const val TAG = "DatabaseModule"
+    
     @Provides
     @Singleton
     fun provideSaisonDatabase(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        migrationHelper: DatabaseMigrationHelper
     ): SaisonDatabase {
         return Room.databaseBuilder(
             context,
@@ -40,7 +51,36 @@ object DatabaseModule {
                 SaisonDatabase.MIGRATION_12_13,
                 SaisonDatabase.MIGRATION_13_14
             )
-            .fallbackToDestructiveMigration()
+            // ⚠️ 移除了 fallbackToDestructiveMigration()！
+            // 这个配置会在迁移失败时删除整个数据库，导致数据丢失
+            // 现在如果缺少迁移脚本，应用会崩溃并提示开发者添加迁移
+            // 这样可以强制我们为每个 schema 变化提供安全的迁移路径
+            
+            // 添加回调，在数据库打开时自动创建备份
+            .addCallback(object : RoomDatabase.Callback() {
+                override fun onOpen(db: SupportSQLiteDatabase) {
+                    super.onOpen(db)
+                    Log.d(TAG, "数据库已打开，版本: ${db.version}")
+                    
+                    // 在后台创建自动备份
+                    CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                        try {
+                            migrationHelper.createDatabaseBackup("auto").onSuccess {
+                                Log.d(TAG, "自动备份创建成功: ${it.name}")
+                            }.onFailure {
+                                Log.w(TAG, "自动备份创建失败", it)
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "自动备份异常", e)
+                        }
+                    }
+                }
+                
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    super.onCreate(db)
+                    Log.d(TAG, "数据库首次创建，版本: ${db.version}")
+                }
+            })
             .build()
     }
     
