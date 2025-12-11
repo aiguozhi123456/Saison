@@ -65,6 +65,7 @@ fun getCycleTypeText(cycleType: String): String {
             "MONTHLY" -> R.string.subscription_cycle_monthly
             "QUARTERLY" -> R.string.subscription_cycle_quarterly
             "YEARLY" -> R.string.subscription_cycle_yearly
+            "ONE_TIME" -> R.string.subscription_cycle_onetime
             else -> R.string.subscription_cycle_custom
         }
     )
@@ -77,7 +78,9 @@ fun SubscriptionScreen(
     onNavigateToDetail: (Long) -> Unit = {},
     viewModel: SubscriptionViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
-    val subscriptions by viewModel.subscriptions.collectAsState()
+    val filteredSubscriptions by viewModel.filteredSubscriptions.collectAsState()
+    val statistics by viewModel.statistics.collectAsState()
+    val filterMode by viewModel.filterMode.collectAsState()
     var showAddSheet by remember { mutableStateOf(false) }
     var subscriptionToEdit by remember { mutableStateOf<takagi.ru.saison.data.local.database.entities.SubscriptionEntity?>(null) }
 
@@ -99,32 +102,48 @@ fun SubscriptionScreen(
             }
         }
     ) { paddingValues ->
-        if (subscriptions.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = stringResource(R.string.subscription_empty_message),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(
+                top = 8.dp,
+                bottom = 88.dp // 为浮动按钮留出空间
+            )
+        ) {
+            // 统计卡片 - 常驻显示
+            item {
+                SubscriptionStatsCard(statistics = statistics)
+            }
+            
+            // 筛选组件 - 常驻显示
+            item {
+                SubscriptionFilterChips(
+                    selectedMode = filterMode,
+                    onModeSelected = { viewModel.setFilterMode(it) }
                 )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(
-                    top = 8.dp,
-                    bottom = 88.dp // 为浮动按钮留出空间
-                )
-            ) {
-                items(subscriptions) { subscription ->
+            
+            // 空状态提示
+            if (filteredSubscriptions.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(R.string.subscription_empty_message),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                items(filteredSubscriptions) { subscription ->
                     val stats = viewModel.calculateStats(subscription)
                     val cycleTypeText = getCycleTypeText(subscription.cycleType)
                     // Map Entity to UI Model on the fly or use Entity directly with helper
@@ -519,3 +538,171 @@ fun InfoItem(
         }
     }
 }
+
+// 统计卡片
+@Composable
+fun SubscriptionStatsCard(statistics: SubscriptionGlobalStats) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // 日均消费
+            StatItem(
+                icon = Icons.Default.AttachMoney,
+                label = stringResource(R.string.subscription_stats_daily_cost),
+                value = String.format("¥%.2f", statistics.totalDailyCost),
+                modifier = Modifier.weight(1f)
+            )
+            
+            VerticalDivider(
+                modifier = Modifier
+                    .height(48.dp)
+                    .padding(horizontal = 8.dp)
+            )
+            
+            // 一次性购买日均价值
+            StatItem(
+                icon = Icons.Default.Category,
+                label = stringResource(R.string.subscription_stats_onetime_daily),
+                value = String.format("¥%.2f", statistics.oneTimePurchaseDailyValue),
+                modifier = Modifier.weight(1f)
+            )
+            
+            VerticalDivider(
+                modifier = Modifier
+                    .height(48.dp)
+                    .padding(horizontal = 8.dp)
+            )
+            
+            // 活跃订阅
+            StatItem(
+                icon = Icons.Default.Schedule,
+                label = stringResource(R.string.subscription_stats_active),
+                value = statistics.activeCount.toString(),
+                modifier = Modifier.weight(1f)
+            )
+            
+            VerticalDivider(
+                modifier = Modifier
+                    .height(48.dp)
+                    .padding(horizontal = 8.dp)
+            )
+            
+            // 逾期订阅
+            StatItem(
+                icon = Icons.Default.Warning,
+                label = stringResource(R.string.subscription_stats_overdue),
+                value = statistics.overdueCount.toString(),
+                isWarning = statistics.overdueCount > 0,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+fun StatItem(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    isWarning: Boolean = false
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (isWarning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp)
+        )
+        
+        Spacer(modifier = Modifier.height(2.dp))
+        
+        AnimatedCounter(
+            count = value,
+            style = MaterialTheme.typography.titleSmall.copy(
+                fontWeight = FontWeight.Bold,
+                color = if (isWarning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        )
+        
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+fun AnimatedCounter(
+    count: String,
+    style: androidx.compose.ui.text.TextStyle
+) {
+    Text(
+        text = count,
+        style = style
+    )
+}
+
+// 筛选组件
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SubscriptionFilterChips(
+    selectedMode: SubscriptionFilterMode,
+    onModeSelected: (SubscriptionFilterMode) -> Unit
+) {
+    SingleChoiceSegmentedButtonRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        SegmentedButton(
+            selected = selectedMode == SubscriptionFilterMode.ALL,
+            onClick = { onModeSelected(SubscriptionFilterMode.ALL) },
+            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 4)
+        ) {
+            Text(stringResource(R.string.subscription_filter_all))
+        }
+        
+        SegmentedButton(
+            selected = selectedMode == SubscriptionFilterMode.ACTIVE,
+            onClick = { onModeSelected(SubscriptionFilterMode.ACTIVE) },
+            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 4)
+        ) {
+            Text(stringResource(R.string.subscription_filter_active))
+        }
+        
+        SegmentedButton(
+            selected = selectedMode == SubscriptionFilterMode.OVERDUE,
+            onClick = { onModeSelected(SubscriptionFilterMode.OVERDUE) },
+            shape = SegmentedButtonDefaults.itemShape(index = 2, count = 4)
+        ) {
+            Text(stringResource(R.string.subscription_filter_overdue))
+        }
+        
+        SegmentedButton(
+            selected = selectedMode == SubscriptionFilterMode.PAUSED,
+            onClick = { onModeSelected(SubscriptionFilterMode.PAUSED) },
+            shape = SegmentedButtonDefaults.itemShape(index = 3, count = 4)
+        ) {
+            Text(stringResource(R.string.subscription_filter_paused))
+        }
+    }
+}
+

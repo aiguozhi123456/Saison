@@ -21,6 +21,32 @@ class SubscriptionViewModel @Inject constructor(
 
     val subscriptions = repository.getAllSubscriptions()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    
+    // 筛选模式
+    private val _filterMode = MutableStateFlow(SubscriptionFilterMode.ALL)
+    val filterMode: StateFlow<SubscriptionFilterMode> = _filterMode.asStateFlow()
+    
+    // 筛选后的订阅列表
+    val filteredSubscriptions = combine(subscriptions, _filterMode) { subs, mode ->
+        when (mode) {
+            SubscriptionFilterMode.ALL -> subs
+            SubscriptionFilterMode.ACTIVE -> subs.filter { it.isActive && !it.isPaused }
+            SubscriptionFilterMode.OVERDUE -> subs.filter { 
+                val nextRenewal = Instant.ofEpochMilli(it.nextRenewalDate).atZone(ZoneId.systemDefault()).toLocalDate()
+                nextRenewal.isBefore(LocalDate.now())
+            }
+            SubscriptionFilterMode.PAUSED -> subs.filter { it.isPaused }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    
+    // 统计数据
+    val statistics = subscriptions.map { subs ->
+        calculateGlobalStatistics(subs)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SubscriptionGlobalStats())
+    
+    fun setFilterMode(mode: SubscriptionFilterMode) {
+        _filterMode.value = mode
+    }
 
     fun addSubscription(
         name: String,
@@ -223,6 +249,64 @@ class SubscriptionViewModel @Inject constructor(
         
         return if (parts.isEmpty()) "0天" else parts.joinToString("")
     }
+    
+    // 计算全局统计数据
+    private fun calculateGlobalStatistics(subscriptions: List<SubscriptionEntity>): SubscriptionGlobalStats {
+        if (subscriptions.isEmpty()) {
+            return SubscriptionGlobalStats()
+        }
+        
+        val today = LocalDate.now()
+        var totalDailyCost = 0.0
+        var totalMonthlyCost = 0.0
+        var activeCount = 0
+        var overdueCount = 0
+        var pausedCount = 0
+        
+        // 一次性购买统计
+        var oneTimePurchaseValue = 0.0
+        var oneTimePurchaseDailyValue = 0.0
+        
+        subscriptions.forEach { sub ->
+            val stats = calculateStats(sub)
+            
+            // 统计状态
+            if (sub.isActive && !sub.isPaused) {
+                activeCount++
+            }
+            if (sub.isPaused) {
+                pausedCount++
+            }
+            if (stats.status is SubscriptionStatus.Overdue) {
+                overdueCount++
+            }
+            
+            // 周期性订阅的成本
+            if (sub.cycleType != "ONE_TIME") {
+                totalDailyCost += stats.averageDailyCost
+                totalMonthlyCost += stats.averageMonthlyCost
+            } else {
+                // 一次性购买：计算从购买日到今天的日均使用价值
+                val startDate = Instant.ofEpochMilli(sub.startDate).atZone(ZoneId.systemDefault()).toLocalDate()
+                val daysSincePurchase = ChronoUnit.DAYS.between(startDate, today).coerceAtLeast(1)
+                val dailyValue = sub.price / daysSincePurchase
+                
+                oneTimePurchaseValue += sub.price
+                oneTimePurchaseDailyValue += dailyValue
+            }
+        }
+        
+        return SubscriptionGlobalStats(
+            totalDailyCost = totalDailyCost,
+            totalMonthlyCost = totalMonthlyCost,
+            activeCount = activeCount,
+            overdueCount = overdueCount,
+            pausedCount = pausedCount,
+            oneTimePurchaseTotalValue = oneTimePurchaseValue,
+            oneTimePurchaseDailyValue = oneTimePurchaseDailyValue,
+            totalSubscriptions = subscriptions.size
+        )
+    }
 }
 
 data class SubscriptionStats(
@@ -232,3 +316,21 @@ data class SubscriptionStats(
     val averageMonthlyCost: Double,
     val averageDailyCost: Double
 )
+
+data class SubscriptionGlobalStats(
+    val totalDailyCost: Double = 0.0,
+    val totalMonthlyCost: Double = 0.0,
+    val activeCount: Int = 0,
+    val overdueCount: Int = 0,
+    val pausedCount: Int = 0,
+    val oneTimePurchaseTotalValue: Double = 0.0,
+    val oneTimePurchaseDailyValue: Double = 0.0,
+    val totalSubscriptions: Int = 0
+)
+
+enum class SubscriptionFilterMode {
+    ALL,      // 全部
+    ACTIVE,   // 进行中
+    OVERDUE,  // 已逾期
+    PAUSED    // 已暂停
+}

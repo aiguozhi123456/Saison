@@ -695,6 +695,19 @@
     <string name="subscription_cycle_quarterly">Hàng quý</string>
     <string name="subscription_cycle_yearly">Hàng năm</string>
     <string name="subscription_cycle_custom">Tùy chỉnh</string>
+    <string name="subscription_cycle_onetime">Mua một lần</string>
+    
+    <!-- Thống kê -->
+    <string name="subscription_stats_daily_cost">Hàng ngày</string>
+    <string name="subscription_stats_onetime_daily">Một lần</string>
+    <string name="subscription_stats_active">Hoạt động</string>
+    <string name="subscription_stats_overdue">Quá hạn</string>
+    
+    <!-- Bộ lọc -->
+    <string name="subscription_filter_all">Tất cả</string>
+    <string name="subscription_filter_active">Hoạt động</string>
+    <string name="subscription_filter_overdue">Quá hạn</string>
+    <string name="subscription_filter_paused">Tạm dừng</string>
     
     <!-- Biểu mẫu thêm đăng ký -->
     <string name="subscription_add_title">Thêm đăng ký</string>
