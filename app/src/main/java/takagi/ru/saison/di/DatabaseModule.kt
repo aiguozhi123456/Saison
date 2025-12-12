@@ -52,10 +52,15 @@ object DatabaseModule {
                 SaisonDatabase.MIGRATION_13_14,
                 SaisonDatabase.MIGRATION_14_15
             )
-            // ⚠️ 移除了 fallbackToDestructiveMigration()！
-            // 这个配置会在迁移失败时删除整个数据库，导致数据丢失
-            // 现在如果缺少迁移脚本，应用会崩溃并提示开发者添加迁移
-            // 这样可以强制我们为每个 schema 变化提供安全的迁移路径
+            // ⚠️ 不使用 fallbackToDestructiveMigration() 或 fallbackToDestructiveMigrationOnDowngrade()
+            // 这些配置会在迁移失败或版本降级时删除整个数据库，导致用户数据永久丢失
+            // 
+            // 如果发生迁移错误（包括版本降级），应用会崩溃并提示用户：
+            // 1. 通过设置 > 数据库管理 > 恢复备份 来恢复数据
+            // 2. 应用在每次打开时都会自动创建备份（见下方回调）
+            // 3. 手动备份功能也可用于重要数据保护
+            //
+            // 这样可以强制保护用户数据，即使在版本降级等异常情况下也不会丢失数据
             
             // 添加回调，在数据库打开时自动创建备份
             .addCallback(object : RoomDatabase.Callback() {

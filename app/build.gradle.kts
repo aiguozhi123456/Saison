@@ -33,16 +33,26 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("../saison-release.jks")
-            storePassword = "saison2024"
-            keyAlias = "saison-key"
-            keyPassword = "saison2024"
+            // 如果release keystore存在则使用，否则使用debug签名
+            val keystoreFile = file("../saison-release.jks")
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                storePassword = "saison2024"
+                keyAlias = "saison-key"
+                keyPassword = "saison2024"
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            // 只有当keystore存在时才使用release签名配置
+            val keystoreFile = file("../saison-release.jks")
+            signingConfig = if (keystoreFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
