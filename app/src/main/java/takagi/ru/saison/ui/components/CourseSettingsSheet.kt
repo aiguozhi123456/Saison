@@ -469,23 +469,72 @@ fun CourseSettingsSheet(
             initialEndTime = periodEndTime,
             onDismiss = { showPeriodEditDialog = false },
             onConfirm = { startTime, endTime ->
-                // 计算时长并更新设置
-                val duration = java.time.Duration.between(startTime, endTime).toMinutes().toInt()
+                // 计算新的时长
+                val newDuration = java.time.Duration.between(startTime, endTime).toMinutes().toInt()
                 
-                // 如果是第一节课，更新开始时间
+                // 如果是第一节课，可以同时更新开始时间和时长
                 if (editingPeriod!!.periodNumber == 1) {
                     settings = settings.copy(
                         firstPeriodStartTime = startTime,
-                        periodDuration = duration
+                        periodDuration = newDuration
                     )
+                    selectedTemplateId = null
                 } else {
-                    // 其他节次只更新时长
-                    settings = settings.copy(
-                        periodDuration = duration
-                    )
+                    // 对于其他节次，计算期望的开始时间
+                    val periodNumber = editingPeriod!!.periodNumber
+                    var expectedStartTime = settings.firstPeriodStartTime
+                    
+                    // 计算到当前节次的累计时间
+                    for (i in 1 until periodNumber) {
+                        expectedStartTime = expectedStartTime.plusMinutes(settings.periodDuration.toLong())
+                        
+                        // 添加课间休息
+                        expectedStartTime = if (settings.lunchBreakAfterPeriod != null && i == settings.lunchBreakAfterPeriod) {
+                            // 午休
+                            expectedStartTime.plusMinutes(settings.lunchBreakDuration.toLong())
+                        } else {
+                            // 普通课间休息
+                            expectedStartTime.plusMinutes(settings.breakDuration.toLong())
+                        }
+                    }
+                    
+                    // 检查开始时间是否被修改
+                    val startTimeChanged = startTime != expectedStartTime
+                    
+                    if (startTimeChanged) {
+                        // 如果开始时间被修改，计算时间差并调整课间休息或午休时长
+                        val timeDiff = java.time.Duration.between(expectedStartTime, startTime).toMinutes()
+                        
+                        if (timeDiff != 0L) {
+                            // 确定是调整哪个休息时间
+                            val adjustBreakBefore = periodNumber - 1
+                            if (settings.lunchBreakAfterPeriod != null && adjustBreakBefore == settings.lunchBreakAfterPeriod) {
+                                // 调整午休时长
+                                val newLunchBreak = (settings.lunchBreakDuration + timeDiff.toInt()).coerceAtLeast(5)
+                                settings = settings.copy(
+                                    lunchBreakDuration = newLunchBreak,
+                                    periodDuration = newDuration
+                                )
+                            } else {
+                                // 调整课间休息时长
+                                val newBreakDuration = (settings.breakDuration + timeDiff.toInt()).coerceAtLeast(5)
+                                settings = settings.copy(
+                                    breakDuration = newBreakDuration,
+                                    periodDuration = newDuration
+                                )
+                            }
+                        } else {
+                            // 只修改了时长
+                            settings = settings.copy(periodDuration = newDuration)
+                        }
+                    } else {
+                        // 只修改了时长，不修改开始时间
+                        settings = settings.copy(periodDuration = newDuration)
+                    }
+                    
+                    selectedTemplateId = null
                 }
                 
-                selectedTemplateId = null
                 showPeriodEditDialog = false
             }
         )
