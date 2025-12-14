@@ -15,6 +15,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
         android:name=".SaisonApplication"
@@ -27,6 +28,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Saison"
         tools:targetApi="31">
+        <service
+            android:name=".ui.todo_floating.FloatingTodoService"
+            android:enabled="true"
+            android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

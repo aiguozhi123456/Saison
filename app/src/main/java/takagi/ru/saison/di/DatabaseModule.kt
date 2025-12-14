@@ -52,7 +52,8 @@ object DatabaseModule {
                 SaisonDatabase.MIGRATION_13_14,
                 SaisonDatabase.MIGRATION_14_15,
                 SaisonDatabase.MIGRATION_15_16,
-                SaisonDatabase.MIGRATION_16_17
+                SaisonDatabase.MIGRATION_16_17,
+                SaisonDatabase.MIGRATION_17_18
             )
             // ⚠️ 不使用 fallbackToDestructiveMigration() 或 fallbackToDestructiveMigrationOnDowngrade()
             // 这些配置会在迁移失败或版本降级时删除整个数据库，导致用户数据永久丢失
@@ -155,5 +156,10 @@ object DatabaseModule {
     @Provides
     fun provideValueDayDao(database: SaisonDatabase): ValueDayDao {
         return database.valueDayDao()
+    }
+
+    @Provides
+    fun provideTodoDao(database: SaisonDatabase): TodoDao {
+        return database.todoDao()
     }
 }

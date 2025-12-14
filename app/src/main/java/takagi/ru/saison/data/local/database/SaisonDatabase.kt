@@ -8,6 +8,8 @@ import takagi.ru.saison.data.local.database.dao.*
 import takagi.ru.saison.data.local.database.entities.*
 import takagi.ru.saison.data.local.database.entity.RoutineTaskEntity
 import takagi.ru.saison.data.local.database.entity.CheckInRecordEntity
+import takagi.ru.saison.data.todo.TodoDao
+import takagi.ru.saison.data.todo.TodoItem
 
 @Database(
     entities = [
@@ -23,9 +25,10 @@ import takagi.ru.saison.data.local.database.entity.CheckInRecordEntity
         SubscriptionEntity::class,
         SubscriptionHistoryEntity::class,
         CategoryEntity::class,
-        ValueDayEntity::class
+        ValueDayEntity::class,
+        TodoItem::class
     ],
-    version = 17,
+    version = 18,
     exportSchema = true
 )
 abstract class SaisonDatabase : RoomDatabase() {
@@ -42,6 +45,7 @@ abstract class SaisonDatabase : RoomDatabase() {
     abstract fun subscriptionHistoryDao(): SubscriptionHistoryDao
     abstract fun categoryDao(): CategoryDao
     abstract fun valueDayDao(): ValueDayDao
+    abstract fun todoDao(): TodoDao
     
     companion object {
         const val DATABASE_NAME = "saison_database"
@@ -377,6 +381,19 @@ abstract class SaisonDatabase : RoomDatabase() {
             }
         }
         
+        val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `todo_items` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `isCompleted` INTEGER NOT NULL,
+                        `createdAt` INTEGER NOT NULL
+                    )
+                """.trimIndent())
+            }
+        }
+
         val MIGRATION_16_17 = object : Migration(16, 17) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // 为 value_days 表添加 category 和 warrantyEndDate 字段

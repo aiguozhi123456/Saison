@@ -21,8 +21,10 @@ import takagi.ru.saison.data.repository.backup.WebDavBackupRepository
 import takagi.ru.saison.data.repository.backup.WebDavBackupRepositoryImpl
 import takagi.ru.saison.data.repository.local.LocalExportImportRepository
 import takagi.ru.saison.data.repository.local.LocalExportImportRepositoryImpl
+import takagi.ru.saison.data.repository.TodoRepositoryImpl
 import takagi.ru.saison.domain.repository.CourseSettingsRepository
 import takagi.ru.saison.domain.repository.EventRepository
+import takagi.ru.saison.domain.todo.TodoRepository
 import takagi.ru.saison.util.CycleCalculator
 import javax.inject.Singleton
 
@@ -89,6 +91,12 @@ abstract class RepositoryModule {
     abstract fun bindValueDayRepository(
         valueDayRepositoryImpl: takagi.ru.saison.data.repository.ValueDayRepositoryImpl
     ): takagi.ru.saison.data.repository.ValueDayRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTodoRepository(
+        todoRepositoryImpl: TodoRepositoryImpl
+    ): TodoRepository
     
     companion object {
         @Provides

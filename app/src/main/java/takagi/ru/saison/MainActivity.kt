@@ -8,7 +8,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.Scaffold
+import takagi.ru.saison.ui.components.FloatingWindowButtonled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -239,6 +240,9 @@ fun SaisonApp(
     Scaffold(
         contentWindowInsets = WindowInsets(0.dp),
         containerColor = MaterialTheme.colorScheme.background,
+        floatingActionButton = {
+            FloatingWindowButton()
+        },
         bottomBar = {
             NavigationBar(
                 windowInsets = WindowInsets.systemBars
