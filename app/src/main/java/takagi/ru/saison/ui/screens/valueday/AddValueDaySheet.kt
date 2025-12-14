@@ -1,5 +1,6 @@
 package takagi.ru.saison.ui.screens.valueday
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -75,21 +76,30 @@ fun AddValueDaySheet(
             Spacer(modifier = Modifier.height(12.dp))
             
             // 分类选择
-            OutlinedTextField(
-                value = category,
-                onValueChange = {},
-                label = { Text("分类") },
-                modifier = Modifier.fillMaxWidth(),
-                readOnly = true,
-                trailingIcon = {
-                    IconButton(onClick = { showCategoryDialog = true }) {
-                        Icon(Icons.Default.ArrowDropDown, contentDescription = "选择分类")
+            // 分类选择
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = {},
+                    label = { Text("分类") },
+                    modifier = Modifier.fillMaxWidth(),
+                    readOnly = true,
+                    trailingIcon = {
+                        IconButton(onClick = { showCategoryDialog = true }) {
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = "选择分类")
+                        }
+                    },
+                    leadingIcon = {
+                        Icon(Icons.Default.Category, contentDescription = null)
                     }
-                },
-                leadingIcon = {
-                    Icon(Icons.Default.Category, contentDescription = null)
-                }
-            )
+                )
+                
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable { showCategoryDialog = true }
+                )
+            }
             
             Spacer(modifier = Modifier.height(12.dp))
             
