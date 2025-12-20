@@ -11,6 +11,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -127,6 +128,27 @@
             android:enabled="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+        
+        <!-- Pomodoro Timer Service -->
+        <service
+            android:name=".service.PomodoroTimerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="pomodoro_timer" />
+        </service>
+        
+        <!-- Pomodoro Action Receiver -->
+        <receiver
+            android:name=".notification.PomodoroActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="takagi.ru.saison.POMODORO_PAUSE" />
+                <action android:name="takagi.ru.saison.POMODORO_RESUME" />
+                <action android:name="takagi.ru.saison.POMODORO_STOP" />
             </intent-filter>
         </receiver>
     </application>

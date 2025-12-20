@@ -16,6 +16,9 @@ import takagi.ru.saison.data.repository.RoutineRepository
 import takagi.ru.saison.data.repository.TaskRepository
 import takagi.ru.saison.domain.model.PomodoroSession
 import takagi.ru.saison.domain.model.routine.RoutineTask
+import takagi.ru.saison.service.PomodoroEvent
+import takagi.ru.saison.service.PomodoroEventBus
+import takagi.ru.saison.service.PomodoroTimerService
 import takagi.ru.saison.util.PomodoroNotificationManager
 import takagi.ru.saison.util.VibrationManager
 import javax.inject.Inject
@@ -39,6 +42,8 @@ class PomodoroViewModel @Inject constructor(
     private var timerJob: Job? = null
     private var currentSessionId: Long? = null
     private var sessionStartTime: Long = 0
+    private var totalPausedDuration: Long = 0  // 累计暂停时长（毫秒）
+    private var pauseStartTime: Long = 0       // 暂停开始时间
     
     init {
         // 加载设置
@@ -118,6 +123,58 @@ class PomodoroViewModel @Inject constructor(
         
         // 初始化通知管理器
         notificationManager.initialize()
+        
+        // 监听来自通知栏的事件
+        observeNotificationEvents()
+    }
+    
+    private fun observeNotificationEvents() {
+        viewModelScope.launch {
+            PomodoroEventBus.events.collect { event ->
+                when (event) {
+                    is PomodoroEvent.Pause -> handleNotificationPause()
+                    is PomodoroEvent.Resume -> handleNotificationResume()
+                    is PomodoroEvent.Stop -> handleNotificationStop()
+                }
+            }
+        }
+    }
+    
+    // 处理来自通知栏的暂停操作
+    private fun handleNotificationPause() {
+        if (_uiState.value.timerState is TimerState.Running) {
+            timerJob?.cancel()
+            pauseStartTime = System.currentTimeMillis()
+            _uiState.update { it.copy(
+                timerState = TimerState.Paused(pauseStartTime)
+            )}
+        }
+    }
+    
+    // 处理来自通知栏的继续操作
+    private fun handleNotificationResume() {
+        if (_uiState.value.timerState is TimerState.Paused) {
+            if (pauseStartTime > 0) {
+                totalPausedDuration += System.currentTimeMillis() - pauseStartTime
+                pauseStartTime = 0
+            }
+            _uiState.update { it.copy(
+                timerState = TimerState.Running(sessionStartTime)
+            )}
+            startTimerLoop()
+        }
+    }
+    
+    // 处理来自通知栏的停止操作
+    private fun handleNotificationStop() {
+        timerJob?.cancel()
+        viewModelScope.launch {
+            currentSessionId?.let { sessionId ->
+                pomodoroRepository.markSessionInterrupted(sessionId)
+                saisonNotificationManager.cancelPomodoroReminder(sessionId)
+            }
+        }
+        resetTimer()
     }
     
     // ========== 任务选择 ==========
@@ -151,6 +208,8 @@ class PomodoroViewModel @Inject constructor(
         val duration = state.totalSeconds / 60
         
         sessionStartTime = System.currentTimeMillis()
+        totalPausedDuration = 0  // 重置暂停时长
+        pauseStartTime = 0
         
         viewModelScope.launch {
             // 创建新会话
@@ -177,22 +236,40 @@ class PomodoroViewModel @Inject constructor(
                 triggerTime = completionTime
             )
             
+            // 启动前台服务显示通知
+            PomodoroTimerService.startService(
+                context = context,
+                totalSeconds = duration * 60,
+                startTime = sessionStartTime,
+                taskName = state.selectedRoutineTask?.title
+            )
+            
             startTimerLoop()
         }
     }
     
     fun pauseTimer() {
         timerJob?.cancel()
+        pauseStartTime = System.currentTimeMillis()  // 记录暂停开始时间
         _uiState.update { it.copy(
-            timerState = TimerState.Paused(System.currentTimeMillis())
+            timerState = TimerState.Paused(pauseStartTime)
         )}
+        // 更新通知栏状态
+        PomodoroTimerService.updateService(context, _uiState.value.remainingSeconds, true)
     }
     
     fun resumeTimer() {
         if (_uiState.value.timerState is TimerState.Paused) {
+            // 累加本次暂停的时长
+            if (pauseStartTime > 0) {
+                totalPausedDuration += System.currentTimeMillis() - pauseStartTime
+                pauseStartTime = 0
+            }
             _uiState.update { it.copy(
                 timerState = TimerState.Running(sessionStartTime)
             )}
+            // 更新通知栏状态
+            PomodoroTimerService.updateService(context, _uiState.value.remainingSeconds, false)
             startTimerLoop()
         }
     }
@@ -206,11 +283,15 @@ class PomodoroViewModel @Inject constructor(
                 saisonNotificationManager.cancelPomodoroReminder(sessionId)
             }
         }
+        // 停止前台服务
+        PomodoroTimerService.stopService(context)
         resetTimer()
     }
     
     fun earlyFinish(markComplete: Boolean) {
         timerJob?.cancel()
+        // 停止前台服务
+        PomodoroTimerService.stopService(context)
         
         val state = _uiState.value
         val actualDuration = (state.totalSeconds - state.remainingSeconds) / 60
@@ -280,11 +361,23 @@ class PomodoroViewModel @Inject constructor(
     
     private fun startTimerLoop() {
         timerJob = viewModelScope.launch {
-            while (_uiState.value.remainingSeconds > 0) {
+            val totalDurationMs = _uiState.value.totalSeconds * 1000L
+            
+            while (true) {
+                // 基于时间戳计算已过去的时间，即使应用在后台也能正确计算
+                val elapsedMs = System.currentTimeMillis() - sessionStartTime - totalPausedDuration
+                val remainingMs = totalDurationMs - elapsedMs
+                val remainingSeconds = (remainingMs / 1000).toInt().coerceAtLeast(0)
+                
+                if (remainingSeconds <= 0) {
+                    _uiState.update { it.copy(remainingSeconds = 0) }
+                    break
+                }
+                
+                _uiState.update { it.copy(remainingSeconds = remainingSeconds) }
+                
+                // 每秒更新一次UI
                 delay(1000)
-                _uiState.update { it.copy(
-                    remainingSeconds = it.remainingSeconds - 1
-                )}
             }
             
             // 计时器完成
@@ -337,6 +430,9 @@ class PomodoroViewModel @Inject constructor(
             _uiState.update { it.copy(
                 timerState = TimerState.Completed(isEarlyFinish = false)
             )}
+            
+            // 停止前台服务
+            PomodoroTimerService.stopService(context)
         }
     }
     
@@ -351,12 +447,16 @@ class PomodoroViewModel @Inject constructor(
         )}
         currentSessionId = null
         sessionStartTime = 0
+        totalPausedDuration = 0
+        pauseStartTime = 0
     }
     
     override fun onCleared() {
         super.onCleared()
         timerJob?.cancel()
         notificationManager.release()
+        // 停止前台服务
+        PomodoroTimerService.stopService(context)
     }
 }
 

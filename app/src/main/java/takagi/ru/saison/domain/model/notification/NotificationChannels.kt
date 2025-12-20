@@ -16,6 +16,9 @@ object NotificationChannels {
     /** 番茄钟提醒渠道ID */
     const val POMODORO_REMINDERS = "pomodoro_reminders"
     
+    /** 番茄钟计时器渠道ID（前台服务用） */
+    const val POMODORO_TIMER = "pomodoro_timer"
+    
     /** 快捷输入渠道ID */
     const val QUICK_INPUT = "quick_input"
     
@@ -65,6 +68,14 @@ object NotificationChannels {
             importance = NotificationManager.IMPORTANCE_MAX,
             enableVibration = true,
             enableSound = true
+        ),
+        ChannelConfig(
+            id = POMODORO_TIMER,
+            name = "番茄钟计时器",
+            description = "番茄钟运行时的状态通知",
+            importance = NotificationManager.IMPORTANCE_LOW,
+            enableVibration = false,
+            enableSound = false
         ),
         ChannelConfig(
             id = QUICK_INPUT,
