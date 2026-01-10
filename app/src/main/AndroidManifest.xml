@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
     <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -16,6 +15,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
         android:name=".SaisonApplication"
@@ -40,7 +40,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        
         <!-- FileProvider for sharing ICS files -->
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -51,7 +50,17 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
-        
+
+        <!-- Floating Window Service -->
+        <service
+            android:name=".service.FloatingWindowService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="floating_window" />
+        </service>
+
         <!-- ALL WIDGETS TEMPORARILY DISABLED -->
         
         <!-- Course Widget Receiver - DISABLED -->
@@ -111,7 +120,6 @@
                 <action android:name="takagi.ru.saison.ACTION_VIEW_DETAILS" />
             </intent-filter>
         </receiver>
-        
         <!-- Quick Input Action Receiver -->
         <receiver
             android:name=".notification.QuickInputActionReceiver"
