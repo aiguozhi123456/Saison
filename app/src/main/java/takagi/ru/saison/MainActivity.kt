@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -204,7 +203,9 @@ fun SaisonAppWithTheme(
         SaisonApp(
             widgetTaskId = widgetTaskId,
             widgetNavigateTo = widgetNavigateTo,
-            onWidgetNavigationHandled = onWidgetNavigationHandled
+            onWidgetNavigationHandled = onWidgetNavigationHandled,
+            hasOverlayPermission = hasOverlayPermission,
+            context = context
         )
     }
 }
@@ -213,7 +214,9 @@ fun SaisonAppWithTheme(
 fun SaisonApp(
     widgetTaskId: Long? = null,
     widgetNavigateTo: String? = null,
-    onWidgetNavigationHandled: () -> Unit = {}
+    onWidgetNavigationHandled: () -> Unit = {},
+    hasOverlayPermission: Boolean,
+    context: Context
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
