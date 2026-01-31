@@ -230,6 +230,39 @@ fun SettingsScreen(
                 )
             }
             
+            // 悬浮窗设置
+            val floatingWindowEnabled by viewModel.floatingWindowEnabled.collectAsState()
+            val floatingWindowPermissionGranted = remember {
+                takagi.ru.saison.util.FloatingWindowManager.canDrawOverlays(context)
+            }
+            SettingsSection(title = "悬浮窗") {
+                SettingsSwitchItem(
+                    icon = Icons.Default.PictureInPicture,
+                    title = "启用悬浮窗",
+                    subtitle = if (floatingWindowPermissionGranted) {
+                        if (floatingWindowEnabled) "悬浮窗已开启" else "悬浮窗已关闭"
+                    } else {
+                        "需要授予悬浮窗权限"
+                    },
+                    checked = floatingWindowEnabled && floatingWindowPermissionGranted,
+                    onCheckedChange = { enabled ->
+                        if (enabled) {
+                            if (takagi.ru.saison.util.FloatingWindowManager.canDrawOverlays(context)) {
+                                viewModel.setFloatingWindowEnabled(true)
+                                takagi.ru.saison.util.FloatingWindowManager.showFloatingWindow(context)
+                            } else {
+                                // 请求权限
+                                takagi.ru.saison.util.FloatingWindowManager.requestPermission(context as android.app.Activity)
+                            }
+                        } else {
+                            viewModel.setFloatingWindowEnabled(false)
+                            takagi.ru.saison.util.FloatingWindowManager.hideFloatingWindow(context)
+                        }
+                    },
+                    enabled = floatingWindowPermissionGranted
+                )
+            }
+            
             // 关于
             SettingsSection(title = stringResource(R.string.settings_section_about)) {
                 SettingsItem(

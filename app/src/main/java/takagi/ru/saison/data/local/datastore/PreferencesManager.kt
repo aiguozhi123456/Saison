@@ -48,6 +48,7 @@ class PreferencesManager @Inject constructor(
         val POMODORO_BREAK_DURATION = intPreferencesKey("pomodoro_break_duration")
         val POMODORO_LONG_BREAK_DURATION = intPreferencesKey("pomodoro_long_break_duration")
         val POMODORO_SOUND_ENABLED = booleanPreferencesKey("pomodoro_sound_enabled")
+        val FLOATING_WINDOW_ENABLED = booleanPreferencesKey("floating_window_enabled")
         val POMODORO_VIBRATION_ENABLED = booleanPreferencesKey("pomodoro_vibration_enabled")
         
         // Bottom Navigation Settings
@@ -392,6 +393,18 @@ class PreferencesManager @Inject constructor(
     suspend fun setPomodoroVibrationEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.POMODORO_VIBRATION_ENABLED] = enabled
+        }
+    }
+    
+    // Floating Window Settings
+    val floatingWindowEnabled: Flow<Boolean> = dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.FLOATING_WINDOW_ENABLED] ?: false
+        }
+    
+    suspend fun setFloatingWindowEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.FLOATING_WINDOW_ENABLED] = enabled
         }
     }
     

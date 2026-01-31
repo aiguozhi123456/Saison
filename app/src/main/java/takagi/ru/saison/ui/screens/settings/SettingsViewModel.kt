@@ -96,6 +96,10 @@ class SettingsViewModel @Inject constructor(
     val quickInputEnabled = preferencesManager.quickInputEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
     
+    // Floating Window Settings
+    val floatingWindowEnabled = preferencesManager.floatingWindowEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    
     val notificationSettings = combine(
         notificationsEnabled,
         taskRemindersEnabled,
@@ -253,6 +257,21 @@ class SettingsViewModel @Inject constructor(
                     _uiEvent.emit(SettingsUiEvent.ShowSnackbar("已启用快捷输入"))
                 } else {
                     _uiEvent.emit(SettingsUiEvent.ShowSnackbar("已禁用快捷输入"))
+                }
+            } catch (e: Exception) {
+                handleError(e)
+            }
+        }
+    }
+    
+    fun setFloatingWindowEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            try {
+                preferencesManager.setFloatingWindowEnabled(enabled)
+                if (enabled) {
+                    _uiEvent.emit(SettingsUiEvent.ShowSnackbar("已启用悬浮窗"))
+                } else {
+                    _uiEvent.emit(SettingsUiEvent.ShowSnackbar("已禁用悬浮窗"))
                 }
             } catch (e: Exception) {
                 handleError(e)
