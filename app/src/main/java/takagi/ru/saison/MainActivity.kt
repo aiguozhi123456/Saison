@@ -201,22 +201,22 @@ fun SaisonAppWithTheme(
         dynamicColor = useDynamicColor
     ) {
         SaisonApp(
+            hasOverlayPermission = hasOverlayPermission,
+            context = context,
             widgetTaskId = widgetTaskId,
             widgetNavigateTo = widgetNavigateTo,
-            onWidgetNavigationHandled = onWidgetNavigationHandled,
-            hasOverlayPermission = hasOverlayPermission,
-            context = context
+            onWidgetNavigationHandled = onWidgetNavigationHandled
         )
     }
 }
 
 @Composable
 fun SaisonApp(
+    hasOverlayPermission: Boolean,
+    context: Context,
     widgetTaskId: Long? = null,
     widgetNavigateTo: String? = null,
-    onWidgetNavigationHandled: () -> Unit = {},
-    hasOverlayPermission: Boolean,
-    context: Context
+    onWidgetNavigationHandled: () -> Unit = {}
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
