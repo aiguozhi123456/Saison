@@ -258,7 +258,7 @@ fun TaskListScreen(
                                                 onSwipeToDelete = {
                                                     viewModel.deleteTask(task.id)
                                                 },
-                                                modifier = Modifier.animateItemPlacement(
+                                                modifier = Modifier.animateItem(
                                                     animationSpec = spring(
                                                         dampingRatio = Spring.DampingRatioMediumBouncy,
                                                         stiffness = Spring.StiffnessMedium
@@ -317,7 +317,7 @@ fun TaskListScreen(
                                         onSwipeToDelete = {
                                             viewModel.deleteTask(task.id)
                                         },
-                                        modifier = Modifier.animateItemPlacement(
+                                        modifier = Modifier.animateItem(
                                             animationSpec = spring(
                                                 dampingRatio = Spring.DampingRatioMediumBouncy,
                                                 stiffness = Spring.StiffnessMedium
@@ -379,7 +379,7 @@ fun TaskListScreen(
                                                 onSwipeToDelete = {
                                                     viewModel.deleteTask(task.id)
                                                 },
-                                                modifier = Modifier.animateItemPlacement(
+                                                modifier = Modifier.animateItem(
                                                     animationSpec = spring(
                                                         dampingRatio = Spring.DampingRatioMediumBouncy,
                                                         stiffness = Spring.StiffnessMedium
