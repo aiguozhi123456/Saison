@@ -75,15 +75,15 @@
 ### 下载安装
 
 #### 方式一: 从 Release 下载
-1. 前往 [Releases](https://github.com/JoyinJoester/saison/releases) 页面
+1. 前往 [Releases](https://github.com/aiguozhi123456/Saison/releases) 页面
 2. 下载最新版本的 APK 文件
 3. 在 Android 设备上安装 APK
 
 #### 方式二: 从源码编译
 ```bash
 # 克隆仓库
-git clone https://github.com/JoyinJoester/saison.git
-cd saison
+git clone https://github.com/aiguozhi123456/Saison.git
+cd Saison
 
 # 使用 Gradle 构建
 ./gradlew assembleDebug
@@ -320,7 +320,7 @@ app/src/main/java/takagi/ru/saison/
 ### 报告问题
 
 如果您发现 Bug 或有功能建议：
-1. 前往 [Issues](https://github.com/JoyinJoester/saison/issues) 页面
+1. 前往 [Issues](https://github.com/aiguozhi123456/Saison/issues) 页面
 2. 搜索是否已有相关问题
 3. 创建新 Issue 并详细描述
 
@@ -360,8 +360,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ## 👨‍💻 作者
 
-**Saison Team**
-- GitHub: [@JoyinJoester](https://github.com/JoyinJoester)
+**原始项目**: [JoyinJoester/Saison](https://github.com/JoyinJoester/saison)
+
+本项目基于原项目 fork，遵循 GPL-3.0 协议继续开发。
 
 ---
 
@@ -382,8 +383,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 如果您觉得这个项目有帮助，请给一个 ⭐️ Star！
 
 有问题或建议？
-- 💬 Issues: [GitHub Issues](https://github.com/JoyinJoester/saison/issues)
-- 📧 Email: Joyin8888@foxmail.com
+- 💬 Issues: [GitHub Issues](https://github.com/aiguozhi123456/Saison/issues)
 
 ---
 
