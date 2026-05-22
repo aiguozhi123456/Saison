@@ -7,6 +7,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.ServiceInfo
+import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -122,7 +124,7 @@ class PomodoroTimerService : Service() {
                 taskName = intent.getStringExtra(EXTRA_TASK_NAME) ?: "番茄钟"
                 isPaused = false
                 
-                startForeground(NOTIFICATION_ID, buildNotification())
+                startForegroundCompat(NOTIFICATION_ID, buildNotification())
                 startTimer()
             }
             ACTION_UPDATE -> {
@@ -269,6 +271,14 @@ class PomodoroTimerService : Service() {
         return NotificationCompat.Action.Builder(0, "停止", pendingIntent).build()
     }
     
+    private fun startForegroundCompat(id: Int, notification: Notification) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(id, notification)
+        }
+    }
+
     private fun broadcastToViewModel(actionType: String) {
         when (actionType) {
             "pause" -> PomodoroEventBus.emitEvent(PomodoroEvent.Pause)

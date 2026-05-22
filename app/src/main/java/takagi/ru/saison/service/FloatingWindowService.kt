@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
 import android.os.Build
+import android.content.pm.ServiceInfo
 import android.os.IBinder
 import android.view.Gravity
 import android.view.MotionEvent
@@ -106,30 +107,47 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
             ACTION_SHOW -> {
                 if (floatingView == null) {
                     showFloatingWindow()
-                    startForeground(NOTIFICATION_ID, buildNotification())
+                    startForegroundCompat(NOTIFICATION_ID, buildNotification())
                     lifecycleRegistry.currentState = Lifecycle.State.RESUMED
                 }
             }
             ACTION_HIDE -> {
                 hideFloatingWindow()
-                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopForegroundCompat()
                 stopSelf()
                 lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
             }
             ACTION_TOGGLE -> {
                 if (floatingView == null) {
                     showFloatingWindow()
-                    startForeground(NOTIFICATION_ID, buildNotification())
+                    startForegroundCompat(NOTIFICATION_ID, buildNotification())
                     lifecycleRegistry.currentState = Lifecycle.State.RESUMED
                 } else {
                     hideFloatingWindow()
-                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopForegroundCompat()
                     stopSelf()
                     lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
                 }
             }
         }
         return START_STICKY
+    }
+
+    private fun startForegroundCompat(id: Int, notification: Notification) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(id, notification)
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun stopForegroundCompat() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            stopForeground(true)
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
