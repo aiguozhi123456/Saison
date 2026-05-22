@@ -258,12 +258,7 @@ fun TaskListScreen(
                                                 onSwipeToDelete = {
                                                     viewModel.deleteTask(task.id)
                                                 },
-                                                modifier = Modifier.animateItem(
-                                                    animationSpec = spring(
-                                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                        stiffness = Spring.StiffnessMedium
-                                                    )
-                                                )
+                                                modifier = Modifier.animateItem()
                                             ) {
                                                 TaskCard(
                                                     task = task,
@@ -317,12 +312,7 @@ fun TaskListScreen(
                                         onSwipeToDelete = {
                                             viewModel.deleteTask(task.id)
                                         },
-                                        modifier = Modifier.animateItem(
-                                            animationSpec = spring(
-                                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                stiffness = Spring.StiffnessMedium
-                                            )
-                                        )
+                                        modifier = Modifier.animateItem()
                                     ) {
                                         TaskCard(
                                             task = task,
@@ -379,12 +369,7 @@ fun TaskListScreen(
                                                 onSwipeToDelete = {
                                                     viewModel.deleteTask(task.id)
                                                 },
-                                                modifier = Modifier.animateItem(
-                                                    animationSpec = spring(
-                                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                        stiffness = Spring.StiffnessMedium
-                                                    )
-                                                )
+                                                modifier = Modifier.animateItem()
                                             ) {
                                                 TaskCard(
                                                     task = task,
