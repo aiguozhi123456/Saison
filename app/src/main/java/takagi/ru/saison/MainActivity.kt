@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.OpenInNew
+
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -125,6 +125,12 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+
+            val floatingNavigateTo = it.getStringExtra("floating_navigate_to")
+            if (floatingNavigateTo != null) {
+                widgetTaskId = 0L
+                widgetNavigateTo = floatingNavigateTo
+            }
         }
     }
     
@@ -158,24 +164,7 @@ fun SaisonAppWithTheme(
     val currentTheme by themeViewModel.currentTheme.collectAsState()
     val themeMode by themeViewModel.themeMode.collectAsState()
     val useDynamicColor by themeViewModel.useDynamicColor.collectAsState()
-    // 悬浮窗权限和状态
     val context = androidx.compose.ui.platform.LocalContext.current
-    val activity = androidx.compose.ui.platform.LocalLifecycleOwner.current as androidx.activity.ComponentActivity
-    
-    var hasOverlayPermission by remember { 
-        mutableStateOf(
-            android.provider.Settings.canDrawOverlays(context)
-        ) 
-    }
-    
-    // 监听 Activity 回来，检查权限状态
-    androidx.compose.ui.platform.LocalLifecycleOwner.current.lifecycle.addObserver(
-        object : androidx.lifecycle.DefaultLifecycleObserver {
-            override fun onResume(owner: androidx.lifecycle.LifecycleOwner) {
-                hasOverlayPermission = android.provider.Settings.canDrawOverlays(context)
-            }
-        }
-    )
     
     // 根据 themeMode 计算实际的 darkTheme 值和主题
     val systemInDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
@@ -201,7 +190,6 @@ fun SaisonAppWithTheme(
         dynamicColor = useDynamicColor
     ) {
         SaisonApp(
-            hasOverlayPermission = hasOverlayPermission,
             context = context,
             widgetTaskId = widgetTaskId,
             widgetNavigateTo = widgetNavigateTo,
@@ -212,7 +200,6 @@ fun SaisonAppWithTheme(
 
 @Composable
 fun SaisonApp(
-    hasOverlayPermission: Boolean,
     context: Context,
     widgetTaskId: Long? = null,
     widgetNavigateTo: String? = null,
@@ -244,12 +231,26 @@ fun SaisonApp(
             when (widgetNavigateTo) {
                 "task_preview" -> {
                     navController.navigate(Screen.TaskPreview.createRoute(widgetTaskId)) {
-                        // 确保不会创建多个相同的目的地
                         launchSingleTop = true
                     }
                 }
                 "task_edit" -> {
                     navController.navigate(Screen.TaskEdit.createRoute(widgetTaskId)) {
+                        launchSingleTop = true
+                    }
+                }
+                "task_add" -> {
+                    navController.navigate(Screen.TaskDetail.createRoute(0L)) {
+                        launchSingleTop = true
+                    }
+                }
+                "calendar" -> {
+                    navController.navigate(Screen.Calendar.route) {
+                        launchSingleTop = true
+                    }
+                }
+                "today_tasks" -> {
+                    navController.navigate(Screen.Tasks.route) {
                         launchSingleTop = true
                     }
                 }
@@ -260,27 +261,6 @@ fun SaisonApp(
     Scaffold(
         contentWindowInsets = WindowInsets(0.dp),
         containerColor = MaterialTheme.colorScheme.background,
-        floatingActionButton = {
-            // 悬浮窗控制按钮
-            FloatingActionButton(
-                onClick = {
-                    if (hasOverlayPermission) {
-                        takagi.ru.saison.service.FloatingWindowService.startService(context)
-                    } else {
-                        val intent = android.content.Intent(
-                            android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                            android.net.Uri.parse("package:${context.packageName}")
-                        )
-                        context.startActivity(intent)
-                    }
-                }
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.OpenInNew,
-                    contentDescription = "悬浮窗"
-                )
-            }
-        },
         bottomBar = {
             NavigationBar(
                 windowInsets = WindowInsets.systemBars

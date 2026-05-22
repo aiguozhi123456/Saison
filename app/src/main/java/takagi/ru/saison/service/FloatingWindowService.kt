@@ -8,11 +8,11 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
+import android.graphics.Point
 import android.os.Build
 import android.content.pm.ServiceInfo
 import android.os.IBinder
 import android.view.Gravity
-import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
@@ -29,12 +29,7 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import takagi.ru.saison.MainActivity
 import takagi.ru.saison.R
 import takagi.ru.saison.ui.components.floating.FloatingWindowContent
-import kotlin.math.abs
 
-/**
- * 悬浮窗服务
- * 在其他应用之上显示可拖动的悬浮窗
- */
 class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner {
 
     companion object {
@@ -44,6 +39,9 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
         const val ACTION_SHOW = "takagi.ru.saison.FLOATING_SHOW"
         const val ACTION_HIDE = "takagi.ru.saison.FLOATING_HIDE"
         const val ACTION_TOGGLE = "takagi.ru.saison.FLOATING_TOGGLE"
+
+        private const val COLLAPSED_WIDTH_DP = 24
+        private const val EXPANDED_WIDTH_DP = 180
 
         fun startService(context: Context) {
             val intent = Intent(context, FloatingWindowService::class.java).apply {
@@ -86,10 +84,13 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
     private var floatingView: View? = null
     private var params: WindowManager.LayoutParams? = null
 
-    private var initialX = 0
-    private var initialY = 0
-    private var initialTouchX = 0f
-    private var initialTouchY = 0f
+    private var screenWidthPx = 0
+    private var screenHeightPx = 0
+    private var isOnRightEdge = true
+
+    private fun dpToPx(dp: Int): Int {
+        return (dp * resources.displayMetrics.density).toInt()
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -100,6 +101,22 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
 
         createNotificationChannel()
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        initScreenSize()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun initScreenSize() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val bounds = windowManager!!.currentWindowMetrics.bounds
+            screenWidthPx = bounds.width()
+            screenHeightPx = bounds.height()
+        } else {
+            val display = windowManager!!.defaultDisplay
+            val size = Point()
+            display.getSize(size)
+            screenWidthPx = size.x
+            screenHeightPx = size.y
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -209,8 +226,10 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
     private fun showFloatingWindow() {
         if (floatingView != null) return
 
+        val collapsedWidthPx = dpToPx(COLLAPSED_WIDTH_DP)
+
         val layoutParams = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            collapsedWidthPx,
             WindowManager.LayoutParams.WRAP_CONTENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -223,8 +242,8 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = 100
-            y = 200
+            x = screenWidthPx - collapsedWidthPx
+            y = screenHeightPx / 3
         }
         params = layoutParams
 
@@ -237,52 +256,90 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
             setViewTreeSavedStateRegistryOwner(this@FloatingWindowService)
             setContent {
                 FloatingWindowContent(
-                    onClose = {
-                        stopSelf()
-                    },
-                    onOpenApp = {
-                        val intent = Intent(this@FloatingWindowService, MainActivity::class.java).apply {
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                        }
-                        startActivity(intent)
-                    }
+                    onExpand = { expandWindow() },
+                    onCollapse = { collapseWindow() },
+                    onDrag = { dx, dy -> updateWindowPosition(dx, dy) },
+                    onDragEnd = { snapToEdge() },
+                    onClose = { stopSelf() },
+                    onNavigate = { route -> navigateToRoute(route) }
                 )
             }
         }
 
         container.addView(composeView)
 
-        container.setOnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    initialX = layoutParams.x
-                    initialY = layoutParams.y
-                    initialTouchX = event.rawX
-                    initialTouchY = event.rawY
-                    true
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    layoutParams.x = initialX + (event.rawX - initialTouchX).toInt()
-                    layoutParams.y = initialY + (event.rawY - initialTouchY).toInt()
-                    windowManager?.updateViewLayout(container, layoutParams)
-                    true
-                }
-                MotionEvent.ACTION_UP -> {
-                    val dx = event.rawX - initialTouchX
-                    val dy = event.rawY - initialTouchY
-                    abs(dx) < 10 && abs(dy) < 10
-                }
-                else -> false
-            }
-        }
-
         floatingView = container
         windowManager?.addView(container, layoutParams)
     }
 
+    private fun expandWindow() {
+        params?.let { p ->
+            val expandedWidthPx = dpToPx(EXPANDED_WIDTH_DP)
+            val oldWidth = p.width
+            p.width = expandedWidthPx
+            if (isOnRightEdge) {
+                p.x = p.x + oldWidth - expandedWidthPx
+            }
+            try {
+                windowManager?.updateViewLayout(floatingView!!, p)
+            } catch (_: Exception) {}
+        }
+    }
+
+    private fun collapseWindow() {
+        params?.let { p ->
+            val collapsedWidthPx = dpToPx(COLLAPSED_WIDTH_DP)
+            val oldWidth = p.width
+            p.width = collapsedWidthPx
+            if (isOnRightEdge) {
+                p.x = p.x + oldWidth - collapsedWidthPx
+            }
+            try {
+                windowManager?.updateViewLayout(floatingView!!, p)
+            } catch (_: Exception) {}
+        }
+    }
+
+    private fun updateWindowPosition(dx: Float, dy: Float) {
+        params?.let { p ->
+            p.x += dx.toInt()
+            p.y += dy.toInt()
+            p.x = p.x.coerceIn(0, (screenWidthPx - p.width).coerceAtLeast(0))
+            p.y = p.y.coerceIn(0, (screenHeightPx - dpToPx(56)).coerceAtLeast(0))
+            try {
+                windowManager?.updateViewLayout(floatingView!!, p)
+            } catch (_: Exception) {}
+        }
+    }
+
+    private fun snapToEdge() {
+        params?.let { p ->
+            val centerX = p.x + p.width / 2
+            isOnRightEdge = centerX > screenWidthPx / 2
+            p.x = if (isOnRightEdge) {
+                screenWidthPx - p.width
+            } else {
+                0
+            }
+            try {
+                windowManager?.updateViewLayout(floatingView!!, p)
+            } catch (_: Exception) {}
+        }
+    }
+
+    private fun navigateToRoute(route: String) {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("floating_navigate_to", route)
+        }
+        startActivity(intent)
+    }
+
     private fun hideFloatingWindow() {
         floatingView?.let {
-            windowManager?.removeView(it)
+            try {
+                windowManager?.removeView(it)
+            } catch (_: Exception) {}
             floatingView = null
         }
     }

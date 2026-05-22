@@ -232,8 +232,22 @@ fun SettingsScreen(
             
             // 悬浮窗设置
             val floatingWindowEnabled by viewModel.floatingWindowEnabled.collectAsState()
-            val floatingWindowPermissionGranted = remember {
-                takagi.ru.saison.util.FloatingWindowManager.canDrawOverlays(context)
+            var floatingWindowPermissionGranted by remember {
+                mutableStateOf(
+                    takagi.ru.saison.util.FloatingWindowManager.canDrawOverlays(context)
+                )
+            }
+            androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle.let { lifecycle ->
+                DisposableEffect(lifecycle) {
+                    val observer = object : androidx.lifecycle.DefaultLifecycleObserver {
+                        override fun onResume(owner: androidx.lifecycle.LifecycleOwner) {
+                            floatingWindowPermissionGranted =
+                                takagi.ru.saison.util.FloatingWindowManager.canDrawOverlays(context)
+                        }
+                    }
+                    lifecycle.addObserver(observer)
+                    onDispose { lifecycle.removeObserver(observer) }
+                }
             }
             SettingsSection(title = "悬浮窗") {
                 SettingsSwitchItem(
