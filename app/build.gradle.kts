@@ -22,7 +22,6 @@ android {
             useSupportLibrary = true
         }
         
-        // 只包含需要的语言资源
         resourceConfigurations += listOf("en", "ja", "vi", "zh-rCN")
         
         // 只包含需要的 ABI
@@ -71,12 +70,12 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-        freeCompilerArgs += listOf(
-            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-            "-opt-in=androidx.compose.foundation.layout.ExperimentalLayoutApi"
-        )
+    kotlin {
+        compilerOptions {
+            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+            freeCompilerArgs.add("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")
+            freeCompilerArgs.add("-opt-in=androidx.compose.foundation.layout.ExperimentalLayoutApi")
+        }
     }
 
     buildFeatures {
