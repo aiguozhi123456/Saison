@@ -22,11 +22,11 @@ import androidx.core.app.NotificationCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeLifecycleOwner as setAxLifecycleOwner
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
-import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner as setAxSavedStateOwner
 import takagi.ru.saison.MainActivity
 import takagi.ru.saison.R
 import takagi.ru.saison.ui.components.floating.FloatingWindowContent
@@ -263,13 +263,17 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
                     root = p as View
                     p = root.parent
                 }
-                root.setViewTreeLifecycleOwner(this@FloatingWindowService)
-                root.setViewTreeSavedStateRegistryOwner(this@FloatingWindowService)
+                setAxLifecycleOwner(root, this@FloatingWindowService)
+                setAxSavedStateOwner(root, this@FloatingWindowService)
+            }
+
+            override fun findViewTreeLifecycleOwner(): LifecycleOwner? {
+                return this@FloatingWindowService
             }
         }
         container.orientation = LinearLayout.VERTICAL
-        container.setViewTreeLifecycleOwner(this@FloatingWindowService)
-        container.setViewTreeSavedStateRegistryOwner(this@FloatingWindowService)
+        setAxLifecycleOwner(container, this@FloatingWindowService)
+        setAxSavedStateOwner(container, this@FloatingWindowService)
 
         val composeView = ComposeView(this).apply {
             setContent {
