@@ -16,7 +16,7 @@ import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
-import android.widget.LinearLayout
+
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.Lifecycle
@@ -229,6 +229,7 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
             .build()
     }
 
+    @Suppress("ClickableViewAccessibility")
     private fun showFloatingWindow() {
         if (floatingView != null) return
 
@@ -254,44 +255,35 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
         }
         params = layoutParams
 
-        val container = object : LinearLayout(this) {
+        val service = this@FloatingWindowService
+        val composeView = object : ComposeView(this) {
             override fun onAttachedToWindow() {
-                super.onAttachedToWindow()
                 var root: View = this
                 var p = root.parent
                 while (p is View) {
                     root = p as View
                     p = root.parent
                 }
-                setAxLifecycleOwner(root, this@FloatingWindowService)
-                setAxSavedStateOwner(root, this@FloatingWindowService)
-            }
-
-            override fun findViewTreeLifecycleOwner(): LifecycleOwner? {
-                return this@FloatingWindowService
+                root.setAxLifecycleOwner(service)
+                root.setAxSavedStateOwner(service)
+                super.onAttachedToWindow()
             }
         }
-        container.orientation = LinearLayout.VERTICAL
-        setAxLifecycleOwner(container, this@FloatingWindowService)
-        setAxSavedStateOwner(container, this@FloatingWindowService)
-
-        val composeView = ComposeView(this).apply {
-            setContent {
-                FloatingWindowContent(
-                    onExpand = { resizeWindow(EXPANDED_WIDTH_DP) },
-                    onCollapse = { resizeWindow(COLLAPSED_WIDTH_DP) },
-                    onDrag = { dx, dy -> updateWindowPosition(dx, dy) },
-                    onDragEnd = { snapToEdge() },
-                    onClose = { stopSelf() },
-                    onNavigate = { route -> navigateToRoute(route) }
-                )
-            }
+        composeView.setAxLifecycleOwner(this)
+        composeView.setAxSavedStateOwner(this)
+        composeView.setContent {
+            FloatingWindowContent(
+                onExpand = { resizeWindow(EXPANDED_WIDTH_DP) },
+                onCollapse = { resizeWindow(COLLAPSED_WIDTH_DP) },
+                onDrag = { dx, dy -> updateWindowPosition(dx, dy) },
+                onDragEnd = { snapToEdge() },
+                onClose = { stopSelf() },
+                onNavigate = { route -> navigateToRoute(route) }
+            )
         }
 
-        container.addView(composeView)
-
-        floatingView = container
-        windowManager?.addView(container, layoutParams)
+        floatingView = composeView
+        windowManager?.addView(composeView, layoutParams)
     }
 
     private fun resizeWindow(targetWidthDp: Int) {
