@@ -256,11 +256,11 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
 
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            setViewTreeLifecycleOwner(this@FloatingWindowService)
+            setViewTreeSavedStateRegistryOwner(this@FloatingWindowService)
         }
 
         val composeView = ComposeView(this).apply {
-            setViewTreeLifecycleOwner(this@FloatingWindowService)
-            setViewTreeSavedStateRegistryOwner(this@FloatingWindowService)
             setContent {
                 FloatingWindowContent(
                     onExpand = { resizeWindow(EXPANDED_WIDTH_DP) },
