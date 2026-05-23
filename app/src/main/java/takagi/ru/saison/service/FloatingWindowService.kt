@@ -263,8 +263,8 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
                     root = p as View
                     p = root.parent
                 }
-                setViewTreeLifecycleOwner(root, this@FloatingWindowService)
-                setViewTreeSavedStateRegistryOwner(root, this@FloatingWindowService)
+                ViewTreeLifecycleOwner.set(root, this@FloatingWindowService)
+                ViewTreeSavedStateRegistryOwner.set(root, this@FloatingWindowService)
             }
         }
         container.orientation = LinearLayout.VERTICAL
