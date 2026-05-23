@@ -14,6 +14,7 @@ import android.content.pm.ServiceInfo
 import android.os.IBinder
 import android.util.Log
 import android.view.Gravity
+import android.view.View
 import android.widget.FrameLayout
 import android.view.WindowManager
 
@@ -22,9 +23,11 @@ import androidx.core.app.NotificationCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import takagi.ru.saison.MainActivity
 import takagi.ru.saison.R
 import takagi.ru.saison.ui.components.floating.FloatingWindowContent
