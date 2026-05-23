@@ -258,22 +258,21 @@ fun SettingsScreen(
                     } else {
                         "需要授予悬浮窗权限"
                     },
-                    checked = floatingWindowEnabled && floatingWindowPermissionGranted,
+                    checked = floatingWindowEnabled,
                     onCheckedChange = { enabled ->
                         if (enabled) {
                             if (takagi.ru.saison.util.FloatingWindowManager.canDrawOverlays(context)) {
                                 viewModel.setFloatingWindowEnabled(true)
                                 takagi.ru.saison.util.FloatingWindowManager.showFloatingWindow(context)
                             } else {
-                                // 请求权限
+                                viewModel.setFloatingWindowEnabled(true)
                                 takagi.ru.saison.util.FloatingWindowManager.requestPermission(context as android.app.Activity)
                             }
                         } else {
                             viewModel.setFloatingWindowEnabled(false)
                             takagi.ru.saison.util.FloatingWindowManager.hideFloatingWindow(context)
                         }
-                    },
-                    enabled = floatingWindowPermissionGranted
+                    }
                 )
             }
             

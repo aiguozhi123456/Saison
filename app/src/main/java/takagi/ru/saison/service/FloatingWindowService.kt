@@ -12,6 +12,7 @@ import android.graphics.Point
 import android.os.Build
 import android.content.pm.ServiceInfo
 import android.os.IBinder
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
@@ -42,6 +43,7 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
 
         private const val COLLAPSED_WIDTH_DP = 24
         private const val EXPANDED_WIDTH_DP = 180
+        private const val TAG = "FloatingWindowService"
 
         fun startService(context: Context) {
             val intent = Intent(context, FloatingWindowService::class.java).apply {
@@ -101,11 +103,11 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
 
         createNotificationChannel()
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        initScreenSize()
+        refreshScreenSize()
     }
 
     @Suppress("DEPRECATION")
-    private fun initScreenSize() {
+    private fun refreshScreenSize() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val bounds = windowManager!!.currentWindowMetrics.bounds
             screenWidthPx = bounds.width()
@@ -120,7 +122,11 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
+        if (intent == null) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        when (intent.action) {
             ACTION_SHOW -> {
                 if (floatingView == null) {
                     showFloatingWindow()
@@ -147,7 +153,7 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
                 }
             }
         }
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     private fun startForegroundCompat(id: Int, notification: Notification) {
@@ -226,6 +232,7 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
     private fun showFloatingWindow() {
         if (floatingView != null) return
 
+        refreshScreenSize()
         val collapsedWidthPx = dpToPx(COLLAPSED_WIDTH_DP)
 
         val layoutParams = WindowManager.LayoutParams(
@@ -256,8 +263,8 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
             setViewTreeSavedStateRegistryOwner(this@FloatingWindowService)
             setContent {
                 FloatingWindowContent(
-                    onExpand = { expandWindow() },
-                    onCollapse = { collapseWindow() },
+                    onExpand = { resizeWindow(EXPANDED_WIDTH_DP) },
+                    onCollapse = { resizeWindow(COLLAPSED_WIDTH_DP) },
                     onDrag = { dx, dy -> updateWindowPosition(dx, dy) },
                     onDragEnd = { snapToEdge() },
                     onClose = { stopSelf() },
@@ -272,47 +279,34 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
         windowManager?.addView(container, layoutParams)
     }
 
-    private fun expandWindow() {
+    private fun resizeWindow(targetWidthDp: Int) {
+        refreshScreenSize()
+        val view = floatingView ?: return
         params?.let { p ->
-            val expandedWidthPx = dpToPx(EXPANDED_WIDTH_DP)
+            val targetWidthPx = dpToPx(targetWidthDp)
             val oldWidth = p.width
-            p.width = expandedWidthPx
+            p.width = targetWidthPx
             if (isOnRightEdge) {
-                p.x = p.x + oldWidth - expandedWidthPx
+                p.x = p.x + oldWidth - targetWidthPx
             }
-            try {
-                windowManager?.updateViewLayout(floatingView!!, p)
-            } catch (_: Exception) {}
-        }
-    }
-
-    private fun collapseWindow() {
-        params?.let { p ->
-            val collapsedWidthPx = dpToPx(COLLAPSED_WIDTH_DP)
-            val oldWidth = p.width
-            p.width = collapsedWidthPx
-            if (isOnRightEdge) {
-                p.x = p.x + oldWidth - collapsedWidthPx
-            }
-            try {
-                windowManager?.updateViewLayout(floatingView!!, p)
-            } catch (_: Exception) {}
+            safeUpdateLayout(view, p)
         }
     }
 
     private fun updateWindowPosition(dx: Float, dy: Float) {
+        val view = floatingView ?: return
         params?.let { p ->
             p.x += dx.toInt()
             p.y += dy.toInt()
             p.x = p.x.coerceIn(0, (screenWidthPx - p.width).coerceAtLeast(0))
             p.y = p.y.coerceIn(0, (screenHeightPx - dpToPx(56)).coerceAtLeast(0))
-            try {
-                windowManager?.updateViewLayout(floatingView!!, p)
-            } catch (_: Exception) {}
+            safeUpdateLayout(view, p)
         }
     }
 
     private fun snapToEdge() {
+        refreshScreenSize()
+        val view = floatingView ?: return
         params?.let { p ->
             val centerX = p.x + p.width / 2
             isOnRightEdge = centerX > screenWidthPx / 2
@@ -321,9 +315,7 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
             } else {
                 0
             }
-            try {
-                windowManager?.updateViewLayout(floatingView!!, p)
-            } catch (_: Exception) {}
+            safeUpdateLayout(view, p)
         }
     }
 
@@ -335,11 +327,21 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
         startActivity(intent)
     }
 
+    private fun safeUpdateLayout(view: View, p: WindowManager.LayoutParams) {
+        try {
+            windowManager?.updateViewLayout(view, p)
+        } catch (e: Exception) {
+            Log.w(TAG, "WindowManager updateViewLayout failed", e)
+        }
+    }
+
     private fun hideFloatingWindow() {
         floatingView?.let {
             try {
                 windowManager?.removeView(it)
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                Log.w(TAG, "WindowManager removeView failed", e)
+            }
             floatingView = null
         }
     }

@@ -52,6 +52,7 @@ fun FloatingWindowContent(
 ) {
     val density = LocalDensity.current
     var isExpanded by remember { mutableStateOf(false) }
+    val sidebarShape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)
 
     Column(
         modifier = Modifier
@@ -65,11 +66,11 @@ fun FloatingWindowContent(
             }
             .shadow(
                 elevation = 8.dp,
-                shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)
+                shape = sidebarShape
             )
             .background(
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)
+                shape = sidebarShape
             )
     ) {
         Box(
