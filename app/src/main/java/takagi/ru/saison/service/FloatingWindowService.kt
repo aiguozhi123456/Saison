@@ -254,11 +254,22 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
         }
         params = layoutParams
 
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setViewTreeLifecycleOwner(this@FloatingWindowService)
-            setViewTreeSavedStateRegistryOwner(this@FloatingWindowService)
+        val container = object : LinearLayout(this) {
+            override fun onAttachedToWindow() {
+                super.onAttachedToWindow()
+                var root: View = this
+                var p = root.parent
+                while (p is View) {
+                    root = p as View
+                    p = root.parent
+                }
+                setViewTreeLifecycleOwner(root, this@FloatingWindowService)
+                setViewTreeSavedStateRegistryOwner(root, this@FloatingWindowService)
+            }
         }
+        container.orientation = LinearLayout.VERTICAL
+        container.setViewTreeLifecycleOwner(this@FloatingWindowService)
+        container.setViewTreeSavedStateRegistryOwner(this@FloatingWindowService)
 
         val composeView = ComposeView(this).apply {
             setContent {
