@@ -14,19 +14,17 @@ import android.content.pm.ServiceInfo
 import android.os.IBinder
 import android.util.Log
 import android.view.Gravity
-import android.view.View
+import android.widget.FrameLayout
 import android.view.WindowManager
 
-import androidx.compose.ui.platform.AbstractComposeView
+import androidx.compose.ui.platform.ComposeView
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import androidx.lifecycle.setViewTreeLifecycleOwner as setAxLifecycleOwner
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
-import androidx.savedstate.setViewTreeSavedStateRegistryOwner as setAxSavedStateOwner
 import takagi.ru.saison.MainActivity
 import takagi.ru.saison.R
 import takagi.ru.saison.ui.components.floating.FloatingWindowContent
@@ -256,35 +254,37 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
         params = layoutParams
 
         val service = this@FloatingWindowService
-        val composeView = object : AbstractComposeView(this) {
-            override fun onAttachedToWindow() {
-                var root: View = this
-                var p = root.parent
-                while (p is View) {
-                    root = p as View
-                    p = root.parent
+        
+        // 创建具有自定义实现的容器类，解决 MIUI 的 ViewTreeLifecycleOwner 问题
+        val container = object : FrameLayout(this) {
+            val composeView = ComposeView(context).apply {
+                setContent {
+                    FloatingWindowContent(
+                        onExpand = { resizeWindow(EXPANDED_WIDTH_DP) },
+                        onCollapse = { resizeWindow(COLLAPSED_WIDTH_DP) },
+                        onDrag = { dx, dy -> updateWindowPosition(dx, dy) },
+                        onDragEnd = { snapToEdge() },
+                        onClose = { stopSelf() },
+                        onNavigate = { route -> navigateToRoute(route) }
+                    )
                 }
-                root.setAxLifecycleOwner(service)
-                root.setAxSavedStateOwner(service)
+            }
+            
+            init {
+                addView(composeView)
+            }
+            
+            override fun onAttachedToWindow() {
+                // 关键：在将 composeView 附加到窗口之前，先设置容器自身的 lifecycle owner
+                // 这样 MIUI 添加的中间层和 composeView 在遍历时都能找到 owner
+                this.setViewTreeLifecycleOwner(service)
+                this.setViewTreeSavedStateRegistryOwner(service)
                 super.onAttachedToWindow()
             }
-
-            @androidx.compose.runtime.Composable
-            override fun Content() {
-                FloatingWindowContent(
-                    onExpand = { resizeWindow(EXPANDED_WIDTH_DP) },
-                    onCollapse = { resizeWindow(COLLAPSED_WIDTH_DP) },
-                    onDrag = { dx, dy -> updateWindowPosition(dx, dy) },
-                    onDragEnd = { snapToEdge() },
-                    onClose = { stopSelf() },
-                    onNavigate = { route -> navigateToRoute(route) }
-                )
-            }
         }
-        // Lifecycle owner 在 onAttachedToWindow 中已经设置到根视图，无需重复设置
 
-        floatingView = composeView
-        windowManager?.addView(composeView, layoutParams)
+        floatingView = container
+        windowManager?.addView(container, layoutParams)
     }
 
     private fun resizeWindow(targetWidthDp: Int) {
