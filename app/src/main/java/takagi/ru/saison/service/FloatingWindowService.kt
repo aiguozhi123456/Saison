@@ -17,7 +17,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 
-import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.AbstractComposeView
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -256,7 +256,7 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
         params = layoutParams
 
         val service = this@FloatingWindowService
-        val composeView = object : ComposeView(this) {
+        val composeView = object : AbstractComposeView(this) {
             override fun onAttachedToWindow() {
                 var root: View = this
                 var p = root.parent
@@ -268,19 +268,21 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
                 root.setAxSavedStateOwner(service)
                 super.onAttachedToWindow()
             }
+
+            @androidx.compose.runtime.Composable
+            override fun Content() {
+                FloatingWindowContent(
+                    onExpand = { resizeWindow(EXPANDED_WIDTH_DP) },
+                    onCollapse = { resizeWindow(COLLAPSED_WIDTH_DP) },
+                    onDrag = { dx, dy -> updateWindowPosition(dx, dy) },
+                    onDragEnd = { snapToEdge() },
+                    onClose = { stopSelf() },
+                    onNavigate = { route -> navigateToRoute(route) }
+                )
+            }
         }
         composeView.setAxLifecycleOwner(this)
         composeView.setAxSavedStateOwner(this)
-        composeView.setContent {
-            FloatingWindowContent(
-                onExpand = { resizeWindow(EXPANDED_WIDTH_DP) },
-                onCollapse = { resizeWindow(COLLAPSED_WIDTH_DP) },
-                onDrag = { dx, dy -> updateWindowPosition(dx, dy) },
-                onDragEnd = { snapToEdge() },
-                onClose = { stopSelf() },
-                onNavigate = { route -> navigateToRoute(route) }
-            )
-        }
 
         floatingView = composeView
         windowManager?.addView(composeView, layoutParams)
