@@ -130,6 +130,8 @@ class MainActivity : ComponentActivity() {
             if (floatingNavigateTo != null) {
                 widgetTaskId = 0L
                 widgetNavigateTo = floatingNavigateTo
+                // 重置 Intent extras，避免重复导航
+                it.removeExtra("floating_navigate_to")
             }
         }
     }

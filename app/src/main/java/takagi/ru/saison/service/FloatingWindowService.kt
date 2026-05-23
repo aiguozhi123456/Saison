@@ -281,8 +281,7 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
                 )
             }
         }
-        composeView.setAxLifecycleOwner(this)
-        composeView.setAxSavedStateOwner(this)
+        // Lifecycle owner 在 onAttachedToWindow 中已经设置到根视图，无需重复设置
 
         floatingView = composeView
         windowManager?.addView(composeView, layoutParams)
@@ -294,6 +293,9 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
         params?.let { p ->
             val targetWidthPx = dpToPx(targetWidthDp)
             val oldWidth = p.width
+            // 根据当前位置重新计算是否在右边，避免旋转后状态失同步
+            val centerX = p.x + oldWidth / 2
+            isOnRightEdge = centerX > screenWidthPx / 2
             p.width = targetWidthPx
             if (isOnRightEdge) {
                 p.x = p.x + oldWidth - targetWidthPx
