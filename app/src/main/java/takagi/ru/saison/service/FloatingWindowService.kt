@@ -18,6 +18,8 @@ import android.view.View
 import android.widget.FrameLayout
 import android.view.WindowManager
 
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.Lifecycle
@@ -28,9 +30,16 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import kotlinx.coroutines.flow.catch
 import takagi.ru.saison.MainActivity
 import takagi.ru.saison.R
+import takagi.ru.saison.data.local.datastore.PreferencesManager
+import takagi.ru.saison.data.local.datastore.SeasonalTheme
+import takagi.ru.saison.data.local.datastore.ThemeMode
+import takagi.ru.saison.data.local.datastore.dataStore
 import takagi.ru.saison.ui.components.floating.FloatingWindowContent
+import takagi.ru.saison.ui.theme.SaisonTheme
+import takagi.ru.saison.util.FloatingWindowManager
 
 class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner {
 
@@ -138,6 +147,7 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
             ACTION_HIDE -> {
                 hideFloatingWindow()
                 stopForegroundCompat()
+                FloatingWindowManager.setFloatingWindowEnabled(this, false)
                 stopSelf()
                 lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
             }
@@ -149,6 +159,7 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
                 } else {
                     hideFloatingWindow()
                     stopForegroundCompat()
+                    FloatingWindowManager.setFloatingWindowEnabled(this, false)
                     stopSelf()
                     lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
                 }
@@ -179,6 +190,7 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
     override fun onDestroy() {
         super.onDestroy()
         hideFloatingWindow()
+        FloatingWindowManager.setFloatingWindowEnabled(this, false)
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         instance = null
     }
@@ -262,18 +274,56 @@ class FloatingWindowService : Service(), LifecycleOwner, SavedStateRegistryOwner
         val container = object : FrameLayout(this) {
             val composeView = ComposeView(context).apply {
                 setContent {
-                    FloatingWindowContent(
-                        onExpand = { resizeWindow(EXPANDED_WIDTH_DP) },
-                        onCollapse = { resizeWindow(COLLAPSED_WIDTH_DP) },
-                        onDrag = { dx, dy -> updateWindowPosition(dx, dy) },
-                        onDragEnd = { snapToEdge() },
-                        onClose = { stopSelf() },
-                        onNavigate = { route -> navigateToRoute(route) }
-                    )
+                    val themePreferences by dataStore.data
+                        .catch { emit(androidx.datastore.preferences.core.emptyPreferences()) }
+                        .collectAsState(initial = null)
+                    val prefs = themePreferences
+                    val seasonalTheme = prefs?.let {
+                        try { SeasonalTheme.valueOf(it[PreferencesManager.PreferencesKeys.THEME] ?: SeasonalTheme.DYNAMIC.name) }
+                        catch (_: Exception) { SeasonalTheme.DYNAMIC }
+                    } ?: SeasonalTheme.DYNAMIC
+                    val themeMode = prefs?.let {
+                        val modeStr = it[PreferencesManager.PreferencesKeys.THEME_MODE]
+                        if (modeStr != null) ThemeMode.fromString(modeStr)
+                        else ThemeMode.FOLLOW_SYSTEM
+                    } ?: ThemeMode.FOLLOW_SYSTEM
+                    val useDynamicColor = prefs?.get(PreferencesManager.PreferencesKeys.USE_DYNAMIC_COLOR) ?: true
+
+                    val darkTheme = when (themeMode) {
+                        ThemeMode.FOLLOW_SYSTEM -> (resources.configuration.uiMode and
+                            android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+                            android.content.res.Configuration.UI_MODE_NIGHT_YES
+                        ThemeMode.LIGHT -> false
+                        ThemeMode.DARK -> true
+                        ThemeMode.AUTO_TIME -> {
+                            val config = takagi.ru.saison.util.TimeOfDayHelper.getCurrentConfig()
+                            config.isDark
+                        }
+                    }
+                    val actualTheme = if (themeMode == ThemeMode.AUTO_TIME) {
+                        takagi.ru.saison.util.TimeOfDayHelper.getCurrentConfig().theme
+                    } else seasonalTheme
+
+                    SaisonTheme(
+                        seasonalTheme = actualTheme,
+                        darkTheme = darkTheme,
+                        dynamicColor = useDynamicColor
+                    ) {
+                        FloatingWindowContent(
+                            onExpand = { resizeWindow(EXPANDED_WIDTH_DP) },
+                            onCollapse = { resizeWindow(COLLAPSED_WIDTH_DP) },
+                            onDrag = { dx, dy -> updateWindowPosition(dx, dy) },
+                            onDragEnd = { snapToEdge() },
+                            onClose = { stopSelf() },
+                            onNavigate = { route -> navigateToRoute(route) }
+                        )
+                    }
                 }
             }
             
             init {
+                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                composeView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 addView(composeView)
             }
             

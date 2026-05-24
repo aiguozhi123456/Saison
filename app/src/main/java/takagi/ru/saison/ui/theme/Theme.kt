@@ -31,7 +31,8 @@ fun SaisonTheme(
     val context = LocalContext.current
     if (!view.isInEditMode) {
         SideEffect {
-            val window = (view.context as Activity).window
+            val activity = view.context as? Activity ?: return@SideEffect
+            val window = activity.window
             // 设置窗口背景为当前主题的背景色，避免启动时闪白
             window.setBackgroundDrawable(
                 android.graphics.drawable.ColorDrawable(colorScheme.background.toArgb())

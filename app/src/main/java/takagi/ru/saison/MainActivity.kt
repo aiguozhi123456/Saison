@@ -242,7 +242,12 @@ fun SaisonApp(
                     }
                 }
                 "task_add" -> {
-                    navController.navigate(Screen.TaskDetail.createRoute(0L)) {
+                    navController.navigate(Screen.Tasks.createRoute(showAddTask = true)) {
+                        launchSingleTop = true
+                    }
+                }
+                "tasks?show_add_task=true" -> {
+                    navController.navigate(Screen.Tasks.createRoute(showAddTask = true)) {
                         launchSingleTop = true
                     }
                 }
@@ -252,7 +257,7 @@ fun SaisonApp(
                     }
                 }
                 "today_tasks" -> {
-                    navController.navigate(Screen.Tasks.route) {
+                    navController.navigate(Screen.Tasks.createRoute()) {
                         launchSingleTop = true
                     }
                 }

@@ -36,6 +36,7 @@ import takagi.ru.saison.ui.components.CompletedTasksDivider
 @Composable
 fun TaskListScreen(
     viewModel: TaskViewModel = hiltViewModel(),
+    showAutoAddTask: Boolean = false,
     onTaskClick: (Long) -> Unit,
     onTaskEdit: (Long) -> Unit = {},
     onNavigateToAddTask: () -> Unit = {},
@@ -58,7 +59,7 @@ fun TaskListScreen(
     val tags by viewModel.tags.collectAsState()
     val selectedTag by viewModel.selectedTag.collectAsState()
     
-    var showNaturalLanguageDialog by remember { mutableStateOf(false) }
+    var showNaturalLanguageDialog by remember { mutableStateOf(showAutoAddTask) }
     var showFilterMenu by remember { mutableStateOf(false) }
     var showItemTypeSelector by remember { mutableStateOf(false) }
     var showCategoryDrawer by remember { mutableStateOf(false) }

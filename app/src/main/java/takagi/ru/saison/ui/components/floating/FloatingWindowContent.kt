@@ -140,7 +140,7 @@ fun FloatingWindowContent(
             FloatingMenuItem(
                 icon = Icons.Default.Add,
                 label = "添加任务",
-                onClick = { onNavigate("task_add") }
+                onClick = { onNavigate("tasks?show_add_task=true") }
             )
             FloatingMenuItem(
                 icon = Icons.Default.DateRange,

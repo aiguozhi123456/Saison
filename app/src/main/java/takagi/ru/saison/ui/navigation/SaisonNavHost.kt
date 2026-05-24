@@ -14,7 +14,7 @@ import androidx.navigation.navArgument
 @Composable
 fun SaisonNavHost(
     navController: NavHostController,
-    startDestination: String = Screen.Tasks.route,
+    startDestination: String = Screen.Tasks.createRoute(),
     modifier: Modifier = Modifier
 ) {
     NavHost(
@@ -100,8 +100,18 @@ fun SaisonNavHost(
             )
         }
         
-        composable(Screen.Tasks.route) {
+        composable(
+            route = Screen.Tasks.ROUTE_PATTERN,
+            arguments = listOf(
+                navArgument("show_add_task") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
+        ) { backStackEntry ->
+            val showAddTask = backStackEntry.arguments?.getBoolean("show_add_task") ?: false
             takagi.ru.saison.ui.screens.task.TaskListScreen(
+                showAutoAddTask = showAddTask,
                 onTaskClick = { taskId ->
                     try {
                         // 点击卡片导航到预览页面

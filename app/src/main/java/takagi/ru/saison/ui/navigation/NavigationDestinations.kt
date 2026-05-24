@@ -7,7 +7,11 @@ sealed class Screen(val route: String) {
     object ImportPreview : Screen("import_preview?uri={uri}&semesterId={semesterId}") {
         fun createRoute(uri: String, semesterId: Long) = "import_preview?uri=$uri&semesterId=$semesterId"
     }
-    object Tasks : Screen("tasks")
+    object Tasks : Screen("tasks") {
+        const val ROUTE_PATTERN = "tasks?show_add_task={show_add_task}"
+        fun createRoute(showAddTask: Boolean = false) = 
+            if (showAddTask) "tasks?show_add_task=true" else "tasks"
+    }
     object TaskPreview : Screen("task_preview/{taskId}") {
         fun createRoute(taskId: Long) = "task_preview/$taskId"
     }

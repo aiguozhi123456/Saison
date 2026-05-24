@@ -5,6 +5,13 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import takagi.ru.saison.data.local.datastore.dataStore
 import takagi.ru.saison.service.FloatingWindowService
 
 /**
@@ -12,6 +19,9 @@ import takagi.ru.saison.service.FloatingWindowService
  * 管理悬浮窗权限和服务的启动/停止
  */
 object FloatingWindowManager {
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val FLOATING_WINDOW_ENABLED_KEY = booleanPreferencesKey("floating_window_enabled")
 
     /**
      * 检查是否有悬浮窗权限
@@ -41,10 +51,11 @@ object FloatingWindowManager {
     }
 
     /**
-     * 关闭悬浮窗
+     * 关闭悬浮窗并同步更新 DataStore
      */
     fun hideFloatingWindow(context: Context) {
         FloatingWindowService.stopService(context)
+        setFloatingWindowEnabled(context, false)
     }
 
     /**
@@ -61,5 +72,16 @@ object FloatingWindowManager {
      */
     fun isFloatingWindowRunning(): Boolean {
         return FloatingWindowService.isRunning()
+    }
+
+    /**
+     * 更新 DataStore 中的悬浮窗开关状态
+     */
+    fun setFloatingWindowEnabled(context: Context, enabled: Boolean) {
+        scope.launch {
+            context.dataStore.edit { preferences ->
+                preferences[FLOATING_WINDOW_ENABLED_KEY] = enabled
+            }
+        }
     }
 }

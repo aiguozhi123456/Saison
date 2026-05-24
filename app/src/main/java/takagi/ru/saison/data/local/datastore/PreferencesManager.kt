@@ -14,7 +14,7 @@ import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "saison_preferences")
+internal val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "saison_preferences")
 
 @Singleton
 class PreferencesManager @Inject constructor(
@@ -23,7 +23,7 @@ class PreferencesManager @Inject constructor(
     private val dataStore = context.dataStore
     
     // Keys
-    private object PreferencesKeys {
+    internal object PreferencesKeys {
         val THEME = stringPreferencesKey("theme")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val IS_DARK_MODE = booleanPreferencesKey("is_dark_mode")  // 保留用于数据迁移
